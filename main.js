@@ -25,9 +25,11 @@ function renderEmployeeList() {
   list.innerHTML = "";
   data.employees.forEach(emp => {
     const li = document.createElement("li");
-    li.className = "p-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100";
-    li.textContent = emp.login;
-    li.onclick = () => {
+    li.className = "p-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100 flex justify-between items-center";
+
+    const span = document.createElement("span");
+    span.textContent = emp.login;
+    span.onclick = () => {
       const dates = Object.entries(data.days)
         .filter(([_, logins]) => logins.includes(emp.login))
         .map(([date]) => date)
@@ -37,6 +39,26 @@ function renderEmployeeList() {
         "\n📅 Días: " + (dates || "Ninguno")
       );
     };
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑️";
+    delBtn.className = "text-red-600 hover:text-red-800";
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm("¿Eliminar este empleado?")) {
+        data.employees = data.employees.filter(e => e.login !== emp.login);
+        for (const day in data.days) {
+          data.days[day] = data.days[day].filter(login => login !== emp.login);
+          if (data.days[day].length === 0) delete data.days[day];
+        }
+        saveData();
+        renderEmployeeList();
+        renderCalendar();
+      }
+    };
+
+    li.appendChild(span);
+    li.appendChild(delBtn);
     list.appendChild(li);
   });
 }
@@ -82,6 +104,8 @@ function renderCalendar() {
       if (idx === -1) data.days[dateKey].push(login);
       else data.days[dateKey].splice(idx, 1);
 
+      if (data.days[dateKey].length === 0) delete data.days[dateKey];
+
       saveData();
       renderCalendar();
     };
@@ -94,12 +118,8 @@ function addEmployee() {
   const login = prompt("Login del nuevo empleado:");
   if (!login || data.employees.find(e => e.login === login)) return alert("Login inválido o ya existe.");
 
-  const options = [...defaultProcesses];
-  const custom = prompt("¿Deseas agregar procesos personalizados? Escríbelos separados por coma, o deja vacío:");
-  if (custom) options.push(...custom.split(",").map(x => x.trim()));
-
-  const chosen = prompt("Selecciona los procesos para este empleado (separa con coma):\n" + options.join(", "));
-  const selected = chosen ? chosen.split(",").map(p => p.trim()).filter(p => options.includes(p)) : [];
+  const chosen = prompt("Selecciona los procesos para este empleado (separa con coma):\n" + defaultProcesses.join(", "));
+  const selected = chosen ? chosen.split(",").map(p => p.trim()).filter(p => defaultProcesses.includes(p)) : [];
 
   if (selected.length === 0) return alert("Debes asignar al menos un proceso.");
 
